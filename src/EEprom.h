@@ -25,9 +25,11 @@
 #define SWAP_IS_FREE 		(uint16_t)0x0000
 #define PAGE_IS_FREE		 	(uint16_t)0xFFFF
 
-#define EEPROM_RESULT_OK 	0
-#define EEPROM_RESULT_NOT_FOUND	1
+#define EEPROM_RESULT_OK 			0
+#define EEPROM_RESULT_NOT_FOUND		1
 #define EEPROM_RESULT_VADDR_INVALID	2
+#define EEPROM_RESULT_FLASH_FAILD	3
+#define EEPROM_RESULT_FULL			4
 
 /**
  * This is programmabel format all space for EEPROM. If set 1, that all EEPROM will be erased.

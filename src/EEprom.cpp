@@ -69,32 +69,37 @@ uint8_t EEprom::read(uint16_t virtAddress, uint8_t* data) {
 	return result;
 }
 
-/* Return value: (0: variable writed, 1: page is full, 2: address is not valid, 3: flash operation faild) */
+/* Return value: (0: variable writed, 4: page is full, 2: address is not valid, 3: flash operation faild) */
 uint8_t EEprom::write(uint16_t virtAddress, uint16_t* data) {
 	if (virtAddress == SWAP_IS_FREE || virtAddress == PAGE_IS_FREE) {
 		return 2;
 	}
-	uint8_t result = 1;
-	uint32_t cursor = startAddress + PAGE_SIZE - blockSize - 2;
-	while (cursor > startAddress) {
+	uint8_t result = EEPROM_RESULT_FULL;
+
+	uint32_t cursor = getLastBlockAddress();
+
+	while (cursor >= startAddress) {
 		uint16_t bloackVirtualAddress = *(__IO uint16_t*) cursor;
 		if (bloackVirtualAddress == PAGE_IS_FREE) {
 			FLASH_Status status = FLASH_ProgramHalfWord(cursor, virtAddress);
 			if (status != FLASH_COMPLETE) {
-				return 3;
+				return EEPROM_RESULT_FLASH_FAILD;
 			}
-			for (int i = 0; i < blockSize; i++) {
-				data[i] = *(__IO uint16_t*) (cursor + i + 2);
-				FLASH_Status status = FLASH_ProgramHalfWord(cursor + i * 2 + 2,
-						data[i]);
+			for (int i = 0; i < blockSize; i=i+2) {
+				uint16_t dataToSave = ((uint16_t)data[i]) << 8;
+				if (i+1 < blockSize) {
+					dataToSave = dataToSave & ((uint16_t) data[i+1]);
+				}
+				FLASH_Status status = FLASH_ProgramHalfWord(getDataAddress(cursor),
+						dataToSave);
 				if (status != FLASH_COMPLETE) {
-					return 3;
+					return EEPROM_RESULT_FLASH_FAILD;
 				}
 			}
-			result = 0;
+			result = EEPROM_RESULT_OK;
 			break;
 		}
-		cursor -= (2 + blockSize);
+		cursor = getPrevBlockAddress(cursor);
 	}
 	return result;
 

@@ -16,13 +16,14 @@ EEprom::EEprom(uint8_t blockSizeInByte) {
 	this->blockSize = blockSizeInByte;
 	/**
 	 * block Size include
-	 * <2B, 30B>
+	 * <1B, 30B>
+	 * TODO: think about max. Why I put 30B in my notes ?? It is realy limited ?
 	 */
 	if (blockSizeInByte > 30) {
 		this->blockSize = 30;
 	}
-	if (blockSizeInByte < 2) {
-		this->blockSize = 2;
+	if (blockSizeInByte < 0) {
+		this->blockSize = 1;
 	}
 	this->startAddress = EEprom::startAddressFreePage;
 	EEprom::startAddressFreePage += PAGE_SIZE;
@@ -54,12 +55,14 @@ uint8_t EEprom::read(uint16_t virtAddress, uint8_t* data) {
 	uint32_t cursor = getLastBlockAddress();
 
 	while (cursor >= startAddress) {
-		uint16_t bloackVirtualAddress = *(__IO uint16_t*) cursor;
-		if (bloackVirtualAddress == virtAddress) {
+		uint16_t blockVirtualAddress = *(__IO uint16_t*) cursor;
+		if (blockVirtualAddress == virtAddress) {
 			for (int i = 0; i < blockSize; i = i+2) {
 				uint16_t data16_t = *(__IO uint16_t*) (getDataAddress(cursor) + i);
 				data[i] = (uint8_t)(data16_t >> 8);
-				data[i+1] = (uint8_t)(data16_t & 0x00ff);
+				if (i+1 < blockSize) {
+					data[i+1] = (uint8_t)(data16_t & 0x00ff);
+				}
 			}
 			result = EEPROM_RESULT_OK;
 			break;
@@ -74,13 +77,13 @@ uint8_t EEprom::write(uint16_t virtAddress, uint16_t* data) {
 	if (virtAddress == SWAP_IS_FREE || virtAddress == PAGE_IS_FREE) {
 		return 2;
 	}
-	uint8_t result = EEPROM_RESULT_FULL;
+	uint8_t  result = EEPROM_RESULT_FULL;
 
 	uint32_t cursor = getLastBlockAddress();
 
 	while (cursor >= startAddress) {
-		uint16_t bloackVirtualAddress = *(__IO uint16_t*) cursor;
-		if (bloackVirtualAddress == PAGE_IS_FREE) {
+		uint16_t blockVirtualAddress = *(__IO uint16_t*) cursor;
+		if (blockVirtualAddress == PAGE_IS_FREE) {
 			FLASH_Status status = FLASH_ProgramHalfWord(cursor, virtAddress);
 			if (status != FLASH_COMPLETE) {
 				return EEPROM_RESULT_FLASH_FAILD;

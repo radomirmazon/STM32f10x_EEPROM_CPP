@@ -8,6 +8,29 @@ This project based on idea described in AN2594 note (http://www.st.com/web/en/ca
 
 # Instruction
 
+uint8_t data[8];
+uint8_t data2[8];
+
+//init data:
+uint8_t temp = 11;
+for (int i=0; i<8; i++) {
+	data[i] = temp;
+	temp += 11;
+}
+
+
+EEprom* eeprom = new EEprom(8);
+eeprom->write(0x0001, data)
+eeprom->read(0x0001, data2);
+
+//test
+for (int i=0; i<8; i++) {
+	if (data[i] != data2[i]) {
+		assert(); //!!	
+	}
+} 
+
+
 # List of Features
 
 # Credit

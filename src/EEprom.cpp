@@ -22,7 +22,7 @@ EEprom::EEprom(uint8_t blockSizeInByte) {
 	if (blockSizeInByte > 30) {
 		this->blockSize = 30;
 	}
-	if (blockSizeInByte < 0) {
+	if (blockSizeInByte < 1) {
 		this->blockSize = 1;
 	}
 	this->startAddress = EEprom::startAddressFreePage;

@@ -30,6 +30,7 @@
 #define EEPROM_RESULT_VADDR_INVALID	2
 #define EEPROM_RESULT_FLASH_FAILD	3
 #define EEPROM_RESULT_FULL			4
+#define EEPROM_RESULT_SWAP_IS_BUSY  5
 
 /**
  * This is programmabel format all space for EEPROM. If set 1, that all EEPROM will be erased.
@@ -52,9 +53,10 @@ private:
 	/*final*/ uint8_t  blockSize;
 
 	void fixSwapAddress();
-	uint32_t getLastBlockAddress();
+	uint32_t getLastBlockAddress(uint32_t startAddress);
 	uint32_t getPrevBlockAddress(uint32_t cursor);
 	uint32_t getDataAddress(uint32_t cursor);
+	uint8_t  cleanUp();
 };
 
 #endif /* EEPROM_H_ */

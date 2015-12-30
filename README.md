@@ -31,7 +31,9 @@ for (int i=0; i<8; i++) {
 } 
 ```
 
-# List of Features
+# Project Status
+
+Code is not complete. Not tested. Before first run.
 
 # Credit
 

@@ -104,6 +104,9 @@ uint8_t EEprom::write(uint16_t virtAddress, uint16_t* data) {
 		cursor = getPrevBlockAddress(cursor);
 	}
 
+	if (checkCapacity() == EEPROM_RESULT_FULL) {
+		return EEPROM_RESULT_FULL;
+	}
 	return cleanUp();
 }
 
@@ -113,7 +116,7 @@ uint32_t EEprom::getLastBlockAddress(uint32_t startAddress) {
 		fixBlockSize++;
 	}
 	uint8_t realBlockSize = fixBlockSize + 2; /* 2 byte for virtual address*/
-	uint8_t capacity = PAGE_SIZE / realBlockSize;
+	uint16_t capacity = PAGE_SIZE / realBlockSize;
 	return startAddress + realBlockSize * capacity - realBlockSize;
 }
 
@@ -160,3 +163,29 @@ uint8_t EEprom::cleanUp() {
 	}
 	return result;
 }
+
+uint8_t EEprom::checkCapacity() {
+	uint32_t cursor = getLastBlockAddress(startAddress);
+
+	while (cursor >= startAddress) {
+		uint16_t blockVirtualAddress = *(__IO uint16_t*) cursor;
+		if (blockVirtualAddress != PAGE_IS_FREE) {
+			uint8_t counter = 0;
+			uint32_t searchCursor = getLastBlockAddress(startAddress);
+			while (searchCursor >= startAddress) {
+				uint16_t searchVirtualAddress = *(__IO uint16_t*) cursor;
+				if (searchVirtualAddress == blockVirtualAddress) {
+					counter++;
+					if (counter > 1) {
+						//find two virtual address in page; need cleanup
+						return EEPROM_RESULT_OK;
+					}
+				}
+			}
+		}
+		cursor = getPrevBlockAddress(cursor);
+	}
+
+	return EEPROM_RESULT_FULL;
+}
+

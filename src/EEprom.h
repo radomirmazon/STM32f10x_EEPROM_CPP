@@ -57,6 +57,7 @@ private:
 	uint32_t getPrevBlockAddress(uint32_t cursor);
 	uint32_t getDataAddress(uint32_t cursor);
 	uint8_t  cleanUp();
+	uint8_t  checkCapacity();
 };
 
 #endif /* EEPROM_H_ */

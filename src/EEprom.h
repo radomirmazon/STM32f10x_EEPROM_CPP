@@ -51,13 +51,16 @@ private:
 	static uint32_t startAddressSwapPage;
 	uint32_t startAddress;
 	/*final*/ uint8_t  blockSize;
+	/*final*/ uint8_t  fixBlockSize;
 
 	void fixSwapAddress();
 	uint32_t getLastBlockAddress(uint32_t startAddress);
 	uint32_t getPrevBlockAddress(uint32_t cursor);
+	uint32_t getNextBlockAddress(uint32_t cursor);
 	uint32_t getDataAddress(uint32_t cursor);
 	uint8_t  cleanUp();
 	uint8_t  checkCapacity();
+	uint8_t  searchVirtualAddressInSwap(uint32_t virtualAddress);
 };
 
 #endif /* EEPROM_H_ */

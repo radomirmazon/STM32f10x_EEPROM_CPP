@@ -33,7 +33,7 @@ for (int i=0; i<8; i++) {
 
 # Project Status
 
-Code is not complete. Not tested. Before first run.
+Code is complete, but not tested yet.
 
 # Credit
 

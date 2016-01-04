@@ -36,8 +36,6 @@ EEprom::EEprom(uint8_t blockSizeInByte) {
 	fixSwapAddress();
 	FLASH_Unlock();
 
-	this->freeBlockaddress = getFreeBlockAddress();
-
 #if FORMAT == 1
 	FLASH_ErasePage(startAddress);
 	if ((*(__IO uint16_t*) EEprom::startAddressSwapPage) != SWAP_IS_FREE) {
@@ -45,6 +43,8 @@ EEprom::EEprom(uint8_t blockSizeInByte) {
 		FLASH_ProgramHalfWord(EEprom::startAddressSwapPage, SWAP_IS_FREE);
 	}
 #endif
+
+	this->freeBlockaddress = getFreeBlockAddress();
 }
 
 /**
@@ -144,7 +144,6 @@ uint8_t EEprom::tryCleanUp() {
 		return result;
 	}
 
-	freeBlockaddress = getFreeBlockAddress();
 	return EEPROM_RESULT_OK;
 }
 
@@ -168,7 +167,7 @@ uint32_t EEprom::getDataAddress(uint32_t cursor) {
 
 uint8_t EEprom::cleanUp() {
 	uint16_t swapStatus = *(__IO uint16_t*) startAddressSwapPage;
-	if (swapStatus != SWAP_IS_FREE) {
+	if (swapStatus != SWAP_IS_FREE && swapStatus != PAGE_IS_FREE) {
 		return EEPROM_RESULT_SWAP_IS_BUSY;
 	}
 
@@ -205,7 +204,7 @@ uint8_t EEprom::cleanUp() {
 				}
 				for (int i = 0; i < blockSize; i = i + 2) {
 					uint16_t data = *(__IO uint16_t*) (cursor + i);
-					FLASH_ProgramHalfWord(swapCursor + i, data);
+					FLASH_ProgramHalfWord(getDataAddress(swapCursor) + i, data);
 				}
 				swapCursor = getNextBlockAddress(swapCursor);
 			}

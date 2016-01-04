@@ -35,7 +35,7 @@ for (int i=0; i<8; i++) {
 
 Code is complete, but not tested yet.
 
-# INFO, good to know....
+# ...good to know....
 (from manual page 60; DocID13902 Rev 15)
 
 Programming and erasing the Flash memory

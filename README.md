@@ -38,6 +38,17 @@ This project based on idea described in AN2594 note (http://www.st.com/web/en/ca
 			}
 		}
 	}
+	
+	for (int i = 0; i < 40; i++) {
+		uint8_t dataTable[2];
+		eeprom2->read(i + 1, dataTable);
+		for (int data = 0; data < 2; data++) {
+			if (dataTable[data] != i + data * 2) {
+				result = 0;
+			}
+		}
+
+	}
 	while (!result) {
 		;//assert!
 	}

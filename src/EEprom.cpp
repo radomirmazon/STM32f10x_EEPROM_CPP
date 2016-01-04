@@ -34,6 +34,10 @@ EEprom::EEprom(uint8_t blockSizeInByte) {
 	this->startAddress = EEprom::startAddressFreePage;
 	EEprom::startAddressFreePage += PAGE_SIZE;
 	fixSwapAddress();
+	FLASH_Unlock();
+
+	this->freeBlockaddress = getFreeBlockAddress();
+
 #if FORMAT == 1
 	FLASH_ErasePage(startAddress);
 #endif
@@ -58,10 +62,18 @@ uint8_t EEprom::read(uint16_t virtAddress, uint8_t* data) {
 	}
 	uint8_t result = EEPROM_RESULT_NOT_FOUND;
 
-	uint32_t cursor = getLastBlockAddress(startAddress);
+	uint32_t cursor;
+
+	if (freeBlockaddress == 0) {
+		cursor = getLastBlockAddress(startAddress);
+	} else {
+		cursor = getPrevBlockAddress(freeBlockaddress);
+	}
+
 
 	while (cursor >= startAddress) {
 		uint16_t blockVirtualAddress = *(__IO uint16_t*) cursor;
+
 		if (blockVirtualAddress == virtAddress) {
 			for (int i = 0; i < blockSize; i = i + 2) {
 				uint16_t data16_t = *(__IO uint16_t*) (getDataAddress(cursor)
@@ -80,37 +92,35 @@ uint8_t EEprom::read(uint16_t virtAddress, uint8_t* data) {
 }
 
 /* Return value: (0: variable writed, 4: page is full, 2: address is not valid, 3: flash operation faild) */
-uint8_t EEprom::write(uint16_t virtAddress, uint16_t* data) {
+uint8_t EEprom::write(uint16_t virtAddress, uint8_t* data) {
 	if (virtAddress == SWAP_IS_FREE || virtAddress == PAGE_IS_FREE) {
-		return 2;
+		return EEPROM_RESULT_VADDR_INVALID;
 	}
 
-	uint32_t cursor = getLastBlockAddress(startAddress);
+	if (freeBlockaddress == 0) {
+		return EEPROM_RESULT_FULL;
+	}
 
-	while (cursor >= startAddress) {
-		uint16_t blockVirtualAddress = *(__IO uint16_t*) cursor;
-		if (blockVirtualAddress == PAGE_IS_FREE) {
-			FLASH_Status status = FLASH_ProgramHalfWord(cursor, virtAddress);
-			if (status != FLASH_COMPLETE) {
-				return EEPROM_RESULT_FLASH_FAILD;
-			}
-			for (int i = 0; i < blockSize; i = i + 2) {
-				uint16_t dataToSave = ((uint16_t) data[i]) << 8;
-				if (i + 1 < blockSize) {
-					dataToSave = dataToSave & ((uint16_t) data[i + 1]);
-				}
-				FLASH_Status status = FLASH_ProgramHalfWord(
-						getDataAddress(cursor), dataToSave);
-				if (status != FLASH_COMPLETE) {
-					return EEPROM_RESULT_FLASH_FAILD;
-				}
-			}
-			break;
+	FLASH_Status status = FLASH_ProgramHalfWord(freeBlockaddress, virtAddress);
+	if (status != FLASH_COMPLETE) {
+		return EEPROM_RESULT_FLASH_FAILD;
+	}
+	for (int i = 0; i < blockSize; i = i + 2) {
+		uint16_t dataToSave = ((uint16_t) data[i]) << 8;
+		if (i + 1 < blockSize) {
+			dataToSave = dataToSave | ((uint16_t) data[i + 1]);
 		}
-		cursor = getPrevBlockAddress(cursor);
+		FLASH_Status status = FLASH_ProgramHalfWord(getDataAddress(freeBlockaddress) + i,
+				dataToSave);
+		if (status != FLASH_COMPLETE) {
+			return EEPROM_RESULT_FLASH_FAILD;
+		}
 	}
+
+	freeBlockaddress = getNextBlockAddress(freeBlockaddress);
 
 	if (checkCapacity() == EEPROM_RESULT_FULL) {
+		freeBlockaddress = 0;
 		return EEPROM_RESULT_FULL;
 	}
 	return cleanUp();
@@ -123,11 +133,11 @@ uint32_t EEprom::getLastBlockAddress(uint32_t startAddress) {
 }
 
 uint32_t EEprom::getPrevBlockAddress(uint32_t cursor) {
-	return cursor - fixBlockSize + 2;
+	return cursor - (fixBlockSize + 2);
 }
 
 uint32_t EEprom::getNextBlockAddress(uint32_t cursor) {
-	return cursor - fixBlockSize - 2;
+	return cursor + fixBlockSize + 2;
 }
 
 uint32_t EEprom::getDataAddress(uint32_t cursor) {
@@ -171,10 +181,11 @@ uint8_t EEprom::cleanUp() {
 	cursor = startAddressSwapPage;
 	startAddressSwapPage = startAddress;
 	startAddress = cursor;
+	freeBlockaddress = getFreeBlockAddress();
 
 	//mark new swap is free
 	FLASH_Status status = FLASH_ProgramHalfWord(startAddressSwapPage,
-			SWAP_IS_FREE);
+	SWAP_IS_FREE);
 	if (status != FLASH_COMPLETE) {
 		return EEPROM_RESULT_FLASH_FAILD;
 	}
@@ -206,9 +217,9 @@ uint8_t EEprom::checkCapacity() {
 	return EEPROM_RESULT_FULL;
 }
 
-uint8_t  EEprom::searchVirtualAddressInSwap(uint32_t virtualAddress) {
+uint8_t EEprom::searchVirtualAddressInSwap(uint32_t virtualAddress) {
 	uint32_t cursor = startAddressSwapPage;
-	while(cursor < startAddressSwapPage + PAGE_SIZE) {
+	while (cursor < startAddressSwapPage + PAGE_SIZE ) {
 		uint16_t vaddressInSwap = *(__IO uint16_t*) cursor;
 		if (vaddressInSwap == virtualAddress) {
 			return 1;
@@ -221,3 +232,15 @@ uint8_t  EEprom::searchVirtualAddressInSwap(uint32_t virtualAddress) {
 	return 0;
 }
 
+uint32_t EEprom::getFreeBlockAddress() {
+	uint32_t cursor = getLastBlockAddress(startAddress);
+	while (cursor >= startAddress) {
+		uint16_t blockVirtualAddress = *(__IO uint16_t*) cursor;
+		if (blockVirtualAddress != PAGE_IS_FREE) {
+			cursor = getNextBlockAddress(cursor);
+			break;
+		}
+		cursor = getPrevBlockAddress(cursor);
+	}
+	return getNextBlockAddress(cursor);
+}

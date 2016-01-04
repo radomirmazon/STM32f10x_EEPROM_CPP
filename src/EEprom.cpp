@@ -70,7 +70,6 @@ uint8_t EEprom::read(uint16_t virtAddress, uint8_t* data) {
 		cursor = getPrevBlockAddress(freeBlockaddress);
 	}
 
-
 	while (cursor >= startAddress) {
 		uint16_t blockVirtualAddress = *(__IO uint16_t*) cursor;
 
@@ -110,20 +109,30 @@ uint8_t EEprom::write(uint16_t virtAddress, uint8_t* data) {
 		if (i + 1 < blockSize) {
 			dataToSave = dataToSave | ((uint16_t) data[i + 1]);
 		}
-		FLASH_Status status = FLASH_ProgramHalfWord(getDataAddress(freeBlockaddress) + i,
-				dataToSave);
+		FLASH_Status status = FLASH_ProgramHalfWord(
+				getDataAddress(freeBlockaddress) + i, dataToSave);
 		if (status != FLASH_COMPLETE) {
 			return EEPROM_RESULT_FLASH_FAILD;
 		}
 	}
 
 	freeBlockaddress = getNextBlockAddress(freeBlockaddress);
+	if (freeBlockaddress < startAddress + PAGE_SIZE) {
+		return EEPROM_RESULT_OK;
+	} else {
+		freeBlockaddress = 0;
+	}
 
 	if (checkCapacity() == EEPROM_RESULT_FULL) {
-		freeBlockaddress = 0;
 		return EEPROM_RESULT_FULL;
 	}
-	return cleanUp();
+	uint8_t result = cleanUp();
+	if (result != EEPROM_RESULT_OK) {
+		return result;
+	}
+
+	freeBlockaddress = getFreeBlockAddress();
+	return EEPROM_RESULT_OK;
 }
 
 uint32_t EEprom::getLastBlockAddress(uint32_t startAddress) {
@@ -156,12 +165,31 @@ uint8_t EEprom::cleanUp() {
 	uint32_t swapCursor = startAddressSwapPage;
 	uint8_t result = EEPROM_RESULT_OK;
 
+	uint32_t finishSwapAddress;
+	uint16_t finishSwapData;
+
 	while (cursor >= startAddress) {
 		uint16_t blockVirtualAddress = *(__IO uint16_t*) cursor;
 		if (blockVirtualAddress != PAGE_IS_FREE) {
 			if (searchVirtualAddressInSwap(blockVirtualAddress) == 0) {
 				//transfering....
-				FLASH_ProgramHalfWord(swapCursor, blockVirtualAddress);
+				if (swapCursor == startAddressSwapPage) {
+					/** This is first 16bit of Swap.
+					 * First 16bit determine that the Swap is not in use.
+					 * After erase in flash is 0xffff, that mean
+					 * the Swap is not in use. When the power is off
+					 * during data are transferring, swap is still free
+					 * and all data are in page.
+					 */
+					finishSwapAddress = swapCursor;
+					finishSwapData = blockVirtualAddress;
+				} else {
+					FLASH_Status status = FLASH_ProgramHalfWord(swapCursor,
+							blockVirtualAddress);
+					if (status != FLASH_COMPLETE) {
+						return EEPROM_RESULT_FLASH_FAILD;
+					}
+				}
 				for (int i = 0; i < blockSize; i = i + 2) {
 					uint16_t data = *(__IO uint16_t*) (cursor + i);
 					FLASH_ProgramHalfWord(swapCursor + i, data);
@@ -177,6 +205,11 @@ uint8_t EEprom::cleanUp() {
 		result = EEPROM_RESULT_FULL;
 	}
 
+	FLASH_Status status = FLASH_ProgramHalfWord(finishSwapAddress,
+			finishSwapData);
+	if (status != FLASH_COMPLETE) {
+		return EEPROM_RESULT_FLASH_FAILD;
+	}
 	//change to valid page
 	cursor = startAddressSwapPage;
 	startAddressSwapPage = startAddress;

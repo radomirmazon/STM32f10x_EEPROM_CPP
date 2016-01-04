@@ -237,7 +237,6 @@ uint32_t EEprom::getFreeBlockAddress() {
 	while (cursor >= startAddress) {
 		uint16_t blockVirtualAddress = *(__IO uint16_t*) cursor;
 		if (blockVirtualAddress != PAGE_IS_FREE) {
-			cursor = getNextBlockAddress(cursor);
 			break;
 		}
 		cursor = getPrevBlockAddress(cursor);

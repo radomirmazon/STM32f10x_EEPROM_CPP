@@ -35,6 +35,25 @@ for (int i=0; i<8; i++) {
 
 Code is complete, but not tested yet.
 
+# INFO, good to know.... (from manual page 60; DocID13902 Rev 15)
+Programming and erasing the Flash memory
+The Flash memory can be programmed 16 bits (half words) at a time.
+For write and erase operations on the Flash memory (write/erase), the internal RC oscillator
+(HSI) must be ON.
+The Flash memory erase operation can be performed at page level or on the whole Flash
+area (mass-erase). The mass-erase does not affect the information blocks.
+To ensure that there is no over-programming, the Flash Programming and Erase Controller
+blocks are clocked by a fixed clock.
+The End of write operation (programming or erasing) can trigger an interrupt. This interrupt
+can be used to exit from WFI mode, only if the FLITF clock is enabled. Otherwise, the
+interrupt is served only after an exit from WFI.
+The FLASH_ACR register is used to enable/disable prefetch and half cycle access, and to
+control the Flash memory access time according to the CPU frequency. The tables below
+provide the bit map and bit descriptions for this register.
+For complete information on Flash memory operations and register configurations, please
+refer to the STM32F10xxx Flash programming manual (PM0075) or to the XL
+STM32F10xxx Flash programming manual (PM0068).
+
 # Credit
 
 Radomir Mazoń

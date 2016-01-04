@@ -8,27 +8,39 @@ This project based on idea described in AN2594 note (http://www.st.com/web/en/ca
 
 # Instruction
 ```C++
-uint8_t data[8];
-uint8_t data2[8];
+	//test eeprom
+	EEprom* eeprom1 = new EEprom(5);
+	EEprom* eeprom2 = new EEprom(2);
 
-//init data:
-uint8_t temp = 11;
-for (int i=0; i<8; i++) {
-	data[i] = temp;
-	temp += 11;
-}
-
-
-EEprom* eeprom = new EEprom(8);
-eeprom->write(0x0001, data)
-eeprom->read(0x0001, data2);
-
-//test
-for (int i=0; i<8; i++) {
-	if (data[i] != data2[i]) {
-		assert(); //!!	
+	for (int i = 0; i < 20; i++) {
+		uint8_t dataTable[5];
+		for (int data = 0; data < 5; data++) {
+			dataTable[data] = i + data;
+		}
+		eeprom1->write(i + 1, dataTable);
 	}
-} 
+
+	for (int i = 0; i < 40; i++) {
+		uint8_t dataTable[2];
+		for (int data = 0; data < 2; data++) {
+			dataTable[data] = i + data * 2;
+		}
+		eeprom2->write(i + 1, dataTable);
+	}
+
+	int result = 1;
+	for (int i = 0; i < 20; i++) {
+		uint8_t dataTable[5];
+		eeprom1->read(i + 1, dataTable);
+		for (int data = 0; data < 5; data++) {
+			if (dataTable[data] != i + data) {
+				result = 0;
+			}
+		}
+	}
+	while (!result) {
+		;//assert!
+	}
 ```
 
 # Project Status

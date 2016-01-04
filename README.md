@@ -37,6 +37,7 @@ Code is complete, but not tested yet.
 
 # INFO, good to know....
 (from manual page 60; DocID13902 Rev 15)
+
 Programming and erasing the Flash memory
 The Flash memory can be programmed 16 bits (half words) at a time.
 For write and erase operations on the Flash memory (write/erase), the internal RC oscillator

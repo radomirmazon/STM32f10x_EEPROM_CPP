@@ -33,7 +33,7 @@ for (int i=0; i<8; i++) {
 
 # Project Status
 
-Code is complete, but not tested yet.
+Bugs are corrected ...
 
 # ...good to know....
 (from manual page 60; DocID13902 Rev 15)

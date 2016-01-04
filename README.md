@@ -56,7 +56,7 @@ This project based on idea described in AN2594 note (http://www.st.com/web/en/ca
 
 # Project Status
 
-Bugs are corrected ...
+Almost finished. We have Realase Candidate.
 
 # ...good to know....
 (from manual page 60; DocID13902 Rev 15)

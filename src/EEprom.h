@@ -1,36 +1,68 @@
 /*
- * Error.h
+ * EEprom.h
  *
- *  Created on: 22 lis 2015
+ *  Created on: 28 gru 2015
  *      Author: radomir
  */
 
-#ifndef ERROR_H_
-#define ERROR_H_
+#ifndef EEPROM_H_
+#define EEPROM_H_
 
-#include <stdint.h>
+#include "stm32f10x.h"
 
-#define ERROR_CAN_SCE 0
-#define ERROR_INPUT_BUFFOR_OVERFLOW 1
-#define ERROR_CAN_ESR 2
-#define ERROR_FATAL 3
 
-#define ERROR_SIZE 6
+/* Define the STM32F10Xxx Flash page size depending on the used STM32 device */
+#if defined (STM32F10X_LD) || defined (STM32F10X_MD)
+  #define PAGE_SIZE  (uint16_t)0x400  /* Page size = 1KByte */
+#elif defined (STM32F10X_HD) || defined (STM32F10X_CL)
+  #define PAGE_SIZE  (uint16_t)0x800  /* Page size = 2KByte */
+#endif
 
-typedef struct {
-	uint8_t code;
-	uint8_t count;
-} ERROR_t;
+/* EEPROM start address in Flash */
+#define EEPROM_START_ADDRESS    ((uint32_t)0x08010000) /* EEPROM emulation start address:
+                                                  after 64KByte of used Flash memory */
 
-class Error {
+#define SWAP_IS_FREE 		(uint16_t)0x0000
+#define PAGE_IS_FREE		 	(uint16_t)0xFFFF
+
+#define EEPROM_RESULT_OK 			0
+#define EEPROM_RESULT_NOT_FOUND		1
+#define EEPROM_RESULT_VADDR_INVALID	2
+#define EEPROM_RESULT_FLASH_FAILD	3
+#define EEPROM_RESULT_FULL			4
+#define EEPROM_RESULT_SWAP_IS_BUSY  5
+
+/**
+ * This is programmabel format all space for EEPROM. If set 1, that all EEPROM will be erased.
+ * You should set 0 after first run.
+ */
+#define FORMAT	1
+
+class EEprom {
 public:
-	void error(uint8_t code);
-	void crearErrors();
-	ERROR_t getError(uint8_t index);
+	EEprom(uint8_t blockSize =0);
+	virtual ~EEprom(){}
+
+	uint8_t read(uint16_t VirtAddress, uint8_t* Data);
+	uint8_t write(uint16_t VirtAddress, uint8_t* Data);
 
 private:
-	ERROR_t errorTab[ERROR_SIZE];
-	uint8_t index = 0;
+	static uint32_t startAddressFreePage;
+	static uint32_t startAddressSwapPage;
+	uint32_t startAddress;
+	uint32_t freeBlockaddress;
+	/*final*/ uint8_t  blockSize;
+	/*final*/ uint8_t  fixBlockSize;
+
+	void fixSwapAddress();
+	uint32_t getLastBlockAddress(uint32_t startAddress);
+	uint32_t getPrevBlockAddress(uint32_t cursor);
+	uint32_t getNextBlockAddress(uint32_t cursor);
+	uint32_t getDataAddress(uint32_t cursor);
+	uint32_t getFreeBlockAddress();
+	uint8_t  cleanUp();
+	uint8_t  checkCapacity();
+	uint8_t  searchVirtualAddressInSwap(uint32_t virtualAddress);
 };
 
-#endif /* ERROR_H_ */
+#endif /* EEPROM_H_ */

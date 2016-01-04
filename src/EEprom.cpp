@@ -40,6 +40,10 @@ EEprom::EEprom(uint8_t blockSizeInByte) {
 
 #if FORMAT == 1
 	FLASH_ErasePage(startAddress);
+	if ((*(__IO uint16_t*) EEprom::startAddressSwapPage) != SWAP_IS_FREE) {
+		FLASH_ErasePage(EEprom::startAddressSwapPage);
+		FLASH_ProgramHalfWord(EEprom::startAddressSwapPage, SWAP_IS_FREE);
+	}
 #endif
 }
 
@@ -100,6 +104,13 @@ uint8_t EEprom::write(uint16_t virtAddress, uint8_t* data) {
 		return EEPROM_RESULT_FULL;
 	}
 
+	if (getNextBlockAddress(freeBlockaddress) >= startAddress + PAGE_SIZE) {
+		uint8_t status = tryCleanUp();
+		if (status != EEPROM_RESULT_OK) {
+			return status;
+		}
+	}
+
 	FLASH_Status status = FLASH_ProgramHalfWord(freeBlockaddress, virtAddress);
 	if (status != FLASH_COMPLETE) {
 		return EEPROM_RESULT_FLASH_FAILD;
@@ -119,10 +130,12 @@ uint8_t EEprom::write(uint16_t virtAddress, uint8_t* data) {
 	freeBlockaddress = getNextBlockAddress(freeBlockaddress);
 	if (freeBlockaddress < startAddress + PAGE_SIZE) {
 		return EEPROM_RESULT_OK;
-	} else {
-		freeBlockaddress = 0;
 	}
+	return tryCleanUp();
+}
 
+uint8_t EEprom::tryCleanUp() {
+	freeBlockaddress = 0;
 	if (checkCapacity() == EEPROM_RESULT_FULL) {
 		return EEPROM_RESULT_FULL;
 	}
@@ -217,7 +230,7 @@ uint8_t EEprom::cleanUp() {
 	freeBlockaddress = getFreeBlockAddress();
 
 	//mark new swap is free
-	FLASH_Status status = FLASH_ProgramHalfWord(startAddressSwapPage,
+	status = FLASH_ProgramHalfWord(startAddressSwapPage,
 	SWAP_IS_FREE);
 	if (status != FLASH_COMPLETE) {
 		return EEPROM_RESULT_FLASH_FAILD;

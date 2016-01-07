@@ -14,13 +14,8 @@ uint32_t EEprom::startAddressFreePage = EEPROM_START_ADDRESS + PAGE_SIZE;
 
 EEprom::EEprom(uint8_t blockSizeInByte) {
 	this->blockSize = blockSizeInByte;
-	/**
-	 * block Size include
-	 * <1B, 30B>
-	 * TODO: think about max. Why I put 30B in my notes ?? It is realy limited ?
-	 */
-	if (blockSizeInByte > 30) {
-		this->blockSize = 30;
+	if (blockSizeInByte > PAGE_SIZE -2) {
+		this->blockSize = PAGE_SIZE -2;
 	}
 	if (blockSizeInByte < 1) {
 		this->blockSize = 1;

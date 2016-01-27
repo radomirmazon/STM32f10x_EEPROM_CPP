@@ -14,9 +14,7 @@ uint32_t EEprom::startAddressFreePage = EEPROM_START_ADDRESS + PAGE_SIZE;
 
 EEprom::EEprom(uint8_t blockSizeInByte) {
 	this->blockSize = blockSizeInByte;
-	if (blockSizeInByte > PAGE_SIZE -2) {
-		this->blockSize = PAGE_SIZE -2;
-	}
+	
 	if (blockSizeInByte < 1) {
 		this->blockSize = 1;
 	}

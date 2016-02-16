@@ -195,9 +195,9 @@ uint8_t EEprom::cleanUp() {
 						return EEPROM_RESULT_FLASH_FAILD;
 					}
 				}
-				for (int i = 0; i < blockSize; i = i + 2) {
+				for (int i = 2; i < blockSize; i = i + 2) {
 					uint16_t data = *(__IO uint16_t*) (cursor + i);
-					FLASH_ProgramHalfWord(getDataAddress(swapCursor) + i, data);
+					FLASH_ProgramHalfWord(swapCursor + i, data);
 				}
 				swapCursor = getNextBlockAddress(swapCursor);
 			}

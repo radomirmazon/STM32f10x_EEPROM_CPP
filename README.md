@@ -56,7 +56,7 @@ This project based on idea described in AN2594 note (http://www.st.com/web/en/ca
 
 # Project Status
 
-Almost finished. We have Realase Candidate.
+Finally !!! I release my first "big project" with this EEprom class inside. It's works!. Get and enjoy. 
 
 # ...good to know....
 (from manual page 60; DocID13902 Rev 15)

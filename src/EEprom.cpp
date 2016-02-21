@@ -14,7 +14,7 @@ uint32_t EEprom::startAddressFreePage = EEPROM_START_ADDRESS + PAGE_SIZE;
 
 EEprom::EEprom(uint8_t blockSizeInByte) {
 	this->blockSize = blockSizeInByte;
-	
+
 	if (blockSizeInByte < 1) {
 		this->blockSize = 1;
 	}
@@ -72,8 +72,8 @@ uint8_t EEprom::read(uint16_t virtAddress, uint8_t* data) {
 
 		if (blockVirtualAddress == virtAddress) {
 			for (int i = 0; i < blockSize; i = i + 2) {
-				uint16_t data16_t = *(__IO uint16_t*) (getDataAddress(cursor)
-						+ i);
+				uint32_t tempAddress = getDataAddress(cursor) + i;
+				uint16_t data16_t = *(__IO uint16_t*) tempAddress;
 				data[i] = (uint8_t) (data16_t >> 8);
 				if (i + 1 < blockSize) {
 					data[i + 1] = (uint8_t) (data16_t & 0x00ff);
@@ -171,7 +171,7 @@ uint8_t EEprom::cleanUp() {
 	uint8_t result = EEPROM_RESULT_OK;
 
 	uint32_t finishSwapAddress;
-	uint16_t finishSwapData;
+	uint16_t finishSwapData = 0;
 
 	while (cursor >= startAddress) {
 		uint16_t blockVirtualAddress = *(__IO uint16_t*) cursor;
@@ -189,15 +189,20 @@ uint8_t EEprom::cleanUp() {
 					finishSwapAddress = swapCursor;
 					finishSwapData = blockVirtualAddress;
 				} else {
+					//transferring vaddress
 					FLASH_Status status = FLASH_ProgramHalfWord(swapCursor,
 							blockVirtualAddress);
 					if (status != FLASH_COMPLETE) {
 						return EEPROM_RESULT_FLASH_FAILD;
 					}
 				}
-				for (int i = 2; i < blockSize; i = i + 2) {
-					uint16_t data = *(__IO uint16_t*) (cursor + i);
-					FLASH_ProgramHalfWord(swapCursor + i, data);
+				//transferring data
+				for (int i =0; i < blockSize; i = i + 2) {
+					uint16_t data = *(__IO uint16_t*) (getDataAddress(cursor) + i);
+					FLASH_Status status = FLASH_ProgramHalfWord(getDataAddress(swapCursor) + i, data);
+					if (status != FLASH_COMPLETE) {
+						return EEPROM_RESULT_FLASH_FAILD;
+					}
 				}
 				swapCursor = getNextBlockAddress(swapCursor);
 			}
@@ -205,6 +210,9 @@ uint8_t EEprom::cleanUp() {
 		cursor = getPrevBlockAddress(cursor);
 	}
 
+	if (finishSwapData == 0) {
+		return EEPROM_RESULT_FLASH_FAILD;
+	}
 	//check cleanup result
 	if (swapCursor > getLastBlockAddress(startAddressSwapPage)) {
 		result = EEPROM_RESULT_FULL;
@@ -230,6 +238,10 @@ uint8_t EEprom::cleanUp() {
 	return result;
 }
 
+/**
+ * Call always if page is full
+ * return FULL is cant find two identical vaddresses
+ */
 uint8_t EEprom::checkCapacity() {
 	uint32_t cursor = getLastBlockAddress(startAddress);
 
@@ -239,7 +251,7 @@ uint8_t EEprom::checkCapacity() {
 			uint8_t counter = 0;
 			uint32_t searchCursor = getLastBlockAddress(startAddress);
 			while (searchCursor >= startAddress) {
-				uint16_t searchVirtualAddress = *(__IO uint16_t*) cursor;
+				uint16_t searchVirtualAddress = *(__IO uint16_t*) searchCursor;
 				if (searchVirtualAddress == blockVirtualAddress) {
 					counter++;
 					if (counter > 1) {
@@ -247,6 +259,7 @@ uint8_t EEprom::checkCapacity() {
 						return EEPROM_RESULT_OK;
 					}
 				}
+				searchCursor = getPrevBlockAddress(searchCursor);
 			}
 		}
 		cursor = getPrevBlockAddress(cursor);
